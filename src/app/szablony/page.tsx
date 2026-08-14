@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MarketingFrame } from "@/components/marketing-frame";
 import { PageIntro } from "@/components/page-intro";
 import { Reveal } from "@/components/reveal";
+import { getPublishedContent } from "@/lib/marketing-content";
 
 export const metadata: Metadata = {
   title: "Szablony stron i sklepów",
@@ -19,10 +20,11 @@ const library = [
   { name: "Motion 07", kind: "Kampania / landing", tone: "violet", claim: "Jedna akcja. Mocny efekt." },
 ];
 
-export default function TemplatesPage() {
+export default async function TemplatesPage() {
+  const hero = await getPublishedContent("templates.hero");
   return (
     <MarketingFrame>
-      <PageIntro index="01" kicker="Biblioteka" title="Punkty wyjścia z" italic="własnym charakterem." lead="Nie zmieniamy wyłącznie logo i koloru przycisku. Każdy kierunek ma odrębną kompozycję, rytm i zachowanie." />
+      <PageIntro index={hero.eyebrow.split("/")[0].trim()} kicker={hero.eyebrow.split("/")[1]?.trim() ?? "Biblioteka"} title={hero.title} italic={hero.accent} lead={hero.lead} />
       <div className="filter-line"><span>WSZYSTKIE / 06</span><button>Firmowe</button><button>Sklepy</button><button>Landing page</button><i>Biblioteka rośnie co miesiąc.</i></div>
       <section className="library-grid section-pad">
         {library.map((item, index) => <Reveal key={item.name} delay={(index % 2) * 80}>
@@ -42,4 +44,3 @@ export default function TemplatesPage() {
     </MarketingFrame>
   );
 }
-
