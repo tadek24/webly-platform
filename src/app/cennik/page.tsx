@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MarketingFrame } from "@/components/marketing-frame";
 import { PageIntro } from "@/components/page-intro";
 import { siteContent } from "@/content/marketing";
+import { getPublishedContent } from "@/lib/marketing-content";
 
 export const metadata: Metadata = {
   title: "Cennik stron i sklepów w abonamencie",
@@ -16,10 +17,11 @@ const details = [
   ["WooCommerce", "produkty i warianty", "płatności i dostawy", "hosting i SSL"],
 ];
 
-export default function PricingPage() {
+export default async function PricingPage() {
+  const hero = await getPublishedContent("pricing.hero");
   return (
     <MarketingFrame>
-      <PageIntro index="01" kicker="Cennik" title="Płacisz za efekt." italic="Nie za liczbę kliknięć." lead="Na początku opłata za przygotowanie i uruchomienie. Później prosty abonament za technikę, opiekę i rozwój produktu." />
+      <PageIntro index={hero.eyebrow.split("/")[0].trim()} kicker={hero.eyebrow.split("/")[1]?.trim() ?? "Cennik"} title={hero.title} italic={hero.accent} lead={hero.lead} />
       <section className="pricing-ledger section-pad">
         {siteContent.plans.map((plan, index) => <article key={plan.name} className={index === 1 ? "featured" : ""}>
           <div className="plan-top"><span>0{index + 1}</span>{index === 1 && <b>NAJCZĘŚCIEJ WYBIERANY</b>}</div>
@@ -34,4 +36,3 @@ export default function PricingPage() {
     </MarketingFrame>
   );
 }
-
