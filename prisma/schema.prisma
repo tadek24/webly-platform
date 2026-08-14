@@ -4,6 +4,7 @@ datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
 enum SiteType { LANDING BUSINESS STORE }
 enum SiteStatus { PROVISIONING ACTIVE SUSPENDED FAILED }
 enum SubscriptionStatus { TRIALING ACTIVE PAST_DUE CANCELED }
+enum ContentStatus { DRAFT PUBLISHED ARCHIVED }
 
 model Customer {
   id String @id @default(cuid())
@@ -48,3 +49,16 @@ model Subscription {
   updatedAt DateTime @updatedAt
 }
 
+model ContentEntry {
+  id String @id @default(cuid())
+  key String
+  locale String @default("pl")
+  value Json
+  status ContentStatus @default(DRAFT)
+  publishedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([key, locale])
+  @@index([status])
+}
