@@ -18,14 +18,20 @@ export function StoreConsole({ initial }: { initial: StoreData }) {
 
   async function addProduct(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const formElement = event.currentTarget;
     setBusy(true); setMessage("Dodaję produkt…");
-    const form = new FormData(event.currentTarget);
+    const form = new FormData(formElement);
     const payload = { name: String(form.get("name") ?? ""), sku: String(form.get("sku") ?? ""), price: Number(form.get("price") ?? 0), stock: Number(form.get("stock") ?? 0), status: "ACTIVE" as const, imageUrl: productImage || String(form.get("imageUrl") ?? "") };
-    const response = await fetch("/api/store/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
-    const result = await response.json() as { store?: StoreData; error?: string };
-    if (response.ok && result.store) { setStore(result.store); event.currentTarget.reset(); setProductImage(""); setMessage("Produkt został zapisany."); }
-    else setMessage(result.error ?? "Nie udało się dodać produktu.");
-    setBusy(false);
+    try {
+      const response = await fetch("/api/store/products", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const result = await response.json() as { store?: StoreData; error?: string };
+      if (response.ok && result.store) { setStore(result.store); formElement.reset(); setProductImage(""); setMessage("Produkt został zapisany."); }
+      else setMessage(result.error ?? "Nie udało się dodać produktu.");
+    } catch {
+      setMessage("Nie udało się połączyć z centrum sprzedaży. Spróbuj ponownie.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   async function uploadProductImage(event: ChangeEvent<HTMLInputElement>) {
