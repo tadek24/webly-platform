@@ -1,0 +1,74 @@
+name: webly_mvp
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: webly_mvp_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: webly
+      POSTGRES_USER: webly
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in infra/.env}
+    ports:
+      - "127.0.0.1:${POSTGRES_PORT:-5447}:5432"
+    volumes:
+      - webly_mvp_postgres_data:/var/lib/postgresql/data
+    networks: [webly_mvp_network]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U webly -d webly"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  mariadb:
+    image: mariadb:11.4
+    container_name: webly_mvp_mariadb
+    restart: unless-stopped
+    environment:
+      MARIADB_DATABASE: webly_wp
+      MARIADB_USER: webly_wp
+      MARIADB_PASSWORD: ${WP_DB_PASSWORD:?Set WP_DB_PASSWORD in infra/.env}
+      MARIADB_ROOT_PASSWORD: ${WP_DB_ROOT_PASSWORD:?Set WP_DB_ROOT_PASSWORD in infra/.env}
+    volumes:
+      - webly_mvp_mariadb_data:/var/lib/mysql
+    networks: [webly_mvp_network]
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 10s
+      timeout: 5s
+      retries: 15
+
+  wordpress:
+    image: wordpress:6-php8.3-apache
+    container_name: webly_mvp_wordpress
+    restart: unless-stopped
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    environment:
+      WORDPRESS_DB_HOST: mariadb:3306
+      WORDPRESS_DB_NAME: webly_wp
+      WORDPRESS_DB_USER: webly_wp
+      WORDPRESS_DB_PASSWORD: ${WP_DB_PASSWORD:?Set WP_DB_PASSWORD in infra/.env}
+      WORDPRESS_CONFIG_EXTRA: |
+        define('DISALLOW_FILE_EDIT', true);
+        define('WP_ENVIRONMENT_TYPE', 'local');
+    ports:
+      - "127.0.0.1:${WORDPRESS_PORT:-8097}:80"
+    volumes:
+      - webly_mvp_wordpress_data:/var/www/html
+      - ../wordpress/webly-bridge:/var/www/html/wp-content/plugins/webly-bridge:ro
+    networks: [webly_mvp_network]
+
+networks:
+  webly_mvp_network:
+    name: webly_mvp_network
+
+volumes:
+  webly_mvp_postgres_data:
+    name: webly_mvp_postgres_data
+  webly_mvp_mariadb_data:
+    name: webly_mvp_mariadb_data
+  webly_mvp_wordpress_data:
+    name: webly_mvp_wordpress_data
+
