@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Webly Bridge
  * Description: Bezpieczny most treści pomiędzy panelem Webly a WordPressem.
- * Version: 0.3.0
+ * Version: 0.4.0
  * Author: Webly
  */
 
@@ -10,7 +10,7 @@ if (!defined('ABSPATH')) {
     exit;
 }
 
-define('WEBLY_BRIDGE_VERSION', '0.3.0');
+define('WEBLY_BRIDGE_VERSION', '0.4.0');
 
 function webly_bridge_defaults() {
     return [
@@ -65,6 +65,12 @@ register_activation_hook(__FILE__, function () {
     }
 });
 
+add_action('init', function () {
+    if (!get_role('webly_manager')) {
+        add_role('webly_manager', 'Menedżer Webly', ['read' => true]);
+    }
+});
+
 function webly_bridge_authorized(WP_REST_Request $request) {
     $stored = (string) get_option('webly_bridge_token', '');
     $provided = (string) $request->get_header('x-webly-token');
@@ -107,11 +113,63 @@ function webly_bridge_clean_content($content) {
 }
 
 function webly_bridge_customer_payload($user) {
+    $roles = is_array($user->roles) ? $user->roles : [];
+    $platform_role = (in_array('administrator', $roles, true) || in_array('webly_manager', $roles, true)) ? 'ADMIN' : 'CUSTOMER';
     return [
         'id' => (int) $user->ID,
         'email' => (string) $user->user_email,
         'name' => (string) ($user->display_name ?: $user->user_email),
+        'role' => $platform_role,
+        'access' => get_user_meta($user->ID, 'webly_access', true) === 'SUSPENDED' ? 'SUSPENDED' : 'ACTIVE',
     ];
+}
+
+function webly_bridge_default_packages() {
+    return [
+        ['id' => 'START', 'name' => 'Start', 'price' => 79, 'setup' => 990, 'description' => 'Prosta strona lub landing page.', 'audience' => 'Dla jednoosobowej firmy i kampanii', 'siteLimit' => 1, 'features' => ['1 witryna', 'własna domena', 'formularz kontaktowy', 'hosting i SSL']],
+        ['id' => 'PRO', 'name' => 'Pro', 'price' => 149, 'setup' => 1490, 'description' => 'Pełna strona firmowa z większą liczbą sekcji.', 'audience' => 'Dla rozwijającej się firmy', 'siteLimit' => 3, 'features' => ['3 witryny', 'galerie i formularze', 'podstawowe SEO', 'opieka techniczna']],
+        ['id' => 'COMMERCE', 'name' => 'Commerce', 'price' => 299, 'setup' => 2990, 'description' => 'Zarządzany sklep internetowy Webly.', 'audience' => 'Dla własnego sklepu internetowego', 'siteLimit' => 2, 'features' => ['produkty i warianty', 'płatności i dostawy', 'panel zamówień', 'zarządzany WooCommerce']],
+        ['id' => 'OMNICHANNEL', 'name' => 'Omnichannel', 'price' => 699, 'setup' => 5990, 'description' => 'Sklep z obsługą wielu kanałów sprzedaży.', 'audience' => 'Dla sprzedaży marketplace', 'siteLimit' => 4, 'features' => ['Allegro i ERLI', 'Amazon i Empik', 'BaseLinker lub Apilo', 'automatyzacje zamówień']],
+    ];
+}
+
+function webly_bridge_packages() {
+    $packages = get_option('webly_packages', []);
+    if (!is_array($packages) || count($packages) < 3) {
+        $packages = webly_bridge_default_packages();
+        update_option('webly_packages', $packages, false);
+    }
+    return array_values($packages);
+}
+
+function webly_bridge_default_integrations() {
+    return [
+        ['id' => 'stripe', 'name' => 'Stripe', 'category' => 'PAYMENTS', 'description' => 'Karty, BLIK i płatności międzynarodowe.', 'selected' => false, 'availability' => 'READY'],
+        ['id' => 'przelewy24', 'name' => 'Przelewy24', 'category' => 'PAYMENTS', 'description' => 'BLIK i szybkie przelewy dla polskich klientów.', 'selected' => false, 'availability' => 'READY'],
+        ['id' => 'payu', 'name' => 'PayU', 'category' => 'PAYMENTS', 'description' => 'Płatności online i odroczone.', 'selected' => false, 'availability' => 'READY'],
+        ['id' => 'inpost', 'name' => 'InPost', 'category' => 'DELIVERY', 'description' => 'Paczkomaty, kurier i etykiety wysyłkowe.', 'selected' => false, 'availability' => 'READY'],
+        ['id' => 'dpd', 'name' => 'DPD', 'category' => 'DELIVERY', 'description' => 'Kurier krajowy i zagraniczny.', 'selected' => false, 'availability' => 'READY'],
+        ['id' => 'dhl', 'name' => 'DHL', 'category' => 'DELIVERY', 'description' => 'Przesyłki kurierskie i punkty odbioru.', 'selected' => false, 'availability' => 'READY'],
+        ['id' => 'baselinker', 'name' => 'BaseLinker', 'category' => 'ERP', 'description' => 'Synchronizacja ofert, stanów i zamówień.', 'selected' => false, 'availability' => 'READY'],
+        ['id' => 'apilo', 'name' => 'Apilo', 'category' => 'ERP', 'description' => 'Obsługa sprzedaży wielokanałowej.', 'selected' => false, 'availability' => 'READY'],
+        ['id' => 'allegro', 'name' => 'Allegro', 'category' => 'MARKETPLACE', 'description' => 'Oferty, ceny, stany i zamówienia Allegro.', 'selected' => false, 'availability' => 'READY'],
+        ['id' => 'erli', 'name' => 'ERLI', 'category' => 'MARKETPLACE', 'description' => 'Synchronizacja katalogu i zamówień ERLI.', 'selected' => false, 'availability' => 'PLANNED'],
+        ['id' => 'amazon', 'name' => 'Amazon', 'category' => 'MARKETPLACE', 'description' => 'Sprzedaż na europejskich rynkach Amazon.', 'selected' => false, 'availability' => 'PLANNED'],
+        ['id' => 'empik', 'name' => 'EmpikPlace', 'category' => 'MARKETPLACE', 'description' => 'Produkty i zamówienia EmpikPlace.', 'selected' => false, 'availability' => 'PLANNED'],
+        ['id' => 'emap', 'name' => 'eMAP', 'category' => 'MARKETPLACE', 'description' => 'Kolejny kanał sprzedaży wybierany na życzenie.', 'selected' => false, 'availability' => 'PLANNED'],
+    ];
+}
+
+function webly_bridge_store_data($customer_id) {
+    $store = get_user_meta($customer_id, 'webly_store_data', true);
+    if (!is_array($store) || !isset($store['products'])) {
+        $store = ['mode' => class_exists('WooCommerce') ? 'WOOCOMMERCE' : 'PREVIEW', 'products' => [], 'orders' => [], 'integrations' => webly_bridge_default_integrations(), 'updatedAt' => current_time('c')];
+        update_user_meta($customer_id, 'webly_store_data', $store);
+    }
+    if (!isset($store['integrations']) || !is_array($store['integrations'])) {
+        $store['integrations'] = webly_bridge_default_integrations();
+    }
+    return $store;
 }
 
 function webly_bridge_subscription($customer_id) {
@@ -150,7 +208,7 @@ function webly_bridge_clean_blocks($blocks) {
         return [];
     }
 
-    $allowed_types = ['hero', 'text', 'features', 'cta', 'spacer'];
+    $allowed_types = ['hero', 'text', 'features', 'image', 'gallery', 'quote', 'stats', 'products', 'contact', 'cta', 'divider', 'spacer'];
     $clean = [];
 
     foreach (array_slice($blocks, 0, 30) as $block) {
@@ -168,14 +226,49 @@ function webly_bridge_clean_blocks($blocks) {
             'type' => $type,
         ];
 
-        foreach (['kicker', 'title', 'body', 'buttonLabel', 'buttonHref'] as $field) {
+        foreach (['kicker', 'title', 'body', 'buttonLabel'] as $field) {
             if (isset($block[$field]) && is_string($block[$field])) {
                 $item[$field] = sanitize_textarea_field($block[$field]);
             }
         }
 
+        foreach (['buttonHref', 'imageUrl'] as $field) {
+            if (isset($block[$field]) && is_string($block[$field])) {
+                $item[$field] = esc_url_raw($block[$field]);
+            }
+        }
+        if (isset($block['imageAlt']) && is_string($block['imageAlt'])) {
+            $item['imageAlt'] = sanitize_text_field($block['imageAlt']);
+        }
+
         if (isset($block['items']) && is_array($block['items'])) {
-            $item['items'] = array_values(array_map('sanitize_text_field', array_slice($block['items'], 0, 8)));
+            $item['items'] = array_values(array_map('sanitize_text_field', array_slice($block['items'], 0, 16)));
+        }
+
+        if (isset($block['images']) && is_array($block['images'])) {
+            $item['images'] = [];
+            foreach (array_slice($block['images'], 0, 16) as $image) {
+                if (!is_array($image) || empty($image['url'])) continue;
+                $item['images'][] = [
+                    'id' => isset($image['id']) ? absint($image['id']) : 0,
+                    'url' => esc_url_raw($image['url']),
+                    'alt' => sanitize_text_field(isset($image['alt']) ? $image['alt'] : ''),
+                    'name' => sanitize_text_field(isset($image['name']) ? $image['name'] : ''),
+                ];
+            }
+        }
+
+        if (isset($block['style']) && is_array($block['style'])) {
+            $style = $block['style'];
+            $item['style'] = [
+                'backgroundColor' => sanitize_hex_color(isset($style['backgroundColor']) ? $style['backgroundColor'] : '') ?: '',
+                'textColor' => sanitize_hex_color(isset($style['textColor']) ? $style['textColor'] : '') ?: '',
+                'backgroundImage' => esc_url_raw(isset($style['backgroundImage']) ? $style['backgroundImage'] : ''),
+                'backgroundPosition' => in_array(isset($style['backgroundPosition']) ? $style['backgroundPosition'] : '', ['center', 'top', 'bottom', 'left', 'right'], true) ? $style['backgroundPosition'] : 'center',
+                'overlay' => min(80, max(0, absint(isset($style['overlay']) ? $style['overlay'] : 0))),
+                'padding' => in_array(isset($style['padding']) ? $style['padding'] : '', ['compact', 'normal', 'airy'], true) ? $style['padding'] : 'normal',
+                'width' => isset($style['width']) && $style['width'] === 'contained' ? 'contained' : 'wide',
+            ];
         }
 
         $item['align'] = isset($block['align']) && $block['align'] === 'center' ? 'center' : 'left';
@@ -317,6 +410,7 @@ add_action('rest_api_init', function () {
 
             webly_bridge_subscription($user_id);
             webly_bridge_save_customer_sites($user_id, []);
+            update_user_meta($user_id, 'webly_access', 'ACTIVE');
             return ['ok' => true, 'customer' => webly_bridge_customer_payload(get_user_by('id', $user_id))];
         },
         'permission_callback' => 'webly_bridge_authorized',
@@ -331,6 +425,10 @@ add_action('rest_api_init', function () {
 
             if (is_wp_error($user)) {
                 return new WP_Error('invalid_credentials', 'Nieprawidłowy adres e-mail lub hasło.', ['status' => 401]);
+            }
+
+            if (get_user_meta($user->ID, 'webly_access', true) === 'SUSPENDED') {
+                return new WP_Error('account_suspended', 'Dostęp do konta został wstrzymany. Skontaktuj się z Webly.', ['status' => 403]);
             }
 
             webly_bridge_subscription($user->ID);
@@ -388,6 +486,9 @@ add_action('rest_api_init', function () {
                 $sites = webly_bridge_customer_sites($customer_id);
                 $sites[] = $site;
                 webly_bridge_save_customer_sites($customer_id, $sites);
+                if ($kind === 'STORE') {
+                    webly_bridge_store_data($customer_id);
+                }
                 return ['ok' => true, 'site' => $site];
             },
             'permission_callback' => 'webly_bridge_authorized',
@@ -493,7 +594,7 @@ add_action('rest_api_init', function () {
             'callback' => function (WP_REST_Request $request) {
                 $customer_id = webly_bridge_customer_id($request);
                 $plan = strtoupper(sanitize_key($request->get_param('plan')));
-                if (!webly_bridge_valid_customer($customer_id) || !in_array($plan, ['START', 'PRO', 'COMMERCE'], true)) {
+                if (!webly_bridge_valid_customer($customer_id) || !in_array($plan, ['START', 'PRO', 'COMMERCE', 'OMNICHANNEL'], true)) {
                     return new WP_Error('invalid_subscription', 'Nieprawidłowy klient lub plan.', ['status' => 400]);
                 }
                 $subscription = webly_bridge_subscription($customer_id);
@@ -503,6 +604,184 @@ add_action('rest_api_init', function () {
             },
             'permission_callback' => 'webly_bridge_authorized',
         ],
+    ]);
+
+    register_rest_route('webly/v1', '/packages', [
+        [
+            'methods' => 'GET',
+            'callback' => function () {
+                return ['ok' => true, 'packages' => webly_bridge_packages()];
+            },
+            'permission_callback' => 'webly_bridge_authorized',
+        ],
+        [
+            'methods' => 'PUT',
+            'callback' => function (WP_REST_Request $request) {
+                $incoming = $request->get_param('packages');
+                if (!is_array($incoming)) return new WP_Error('invalid_packages', 'Nieprawidłowa lista pakietów.', ['status' => 400]);
+                $allowed_ids = ['START', 'PRO', 'COMMERCE', 'OMNICHANNEL'];
+                $packages = [];
+                foreach (array_slice($incoming, 0, 4) as $package) {
+                    if (!is_array($package)) continue;
+                    $id = strtoupper(sanitize_key(isset($package['id']) ? $package['id'] : ''));
+                    if (!in_array($id, $allowed_ids, true)) continue;
+                    $features = isset($package['features']) && is_array($package['features']) ? array_values(array_map('sanitize_text_field', array_slice($package['features'], 0, 12))) : [];
+                    $packages[] = [
+                        'id' => $id,
+                        'name' => sanitize_text_field(isset($package['name']) ? $package['name'] : $id),
+                        'price' => max(0, floatval(isset($package['price']) ? $package['price'] : 0)),
+                        'setup' => max(0, floatval(isset($package['setup']) ? $package['setup'] : 0)),
+                        'description' => sanitize_textarea_field(isset($package['description']) ? $package['description'] : ''),
+                        'audience' => sanitize_text_field(isset($package['audience']) ? $package['audience'] : ''),
+                        'siteLimit' => max(1, absint(isset($package['siteLimit']) ? $package['siteLimit'] : 1)),
+                        'features' => $features,
+                    ];
+                }
+                if (count($packages) < 3) return new WP_Error('invalid_packages', 'Brakuje wymaganych pakietów.', ['status' => 400]);
+                update_option('webly_packages', $packages, false);
+                return ['ok' => true, 'packages' => $packages];
+            },
+            'permission_callback' => 'webly_bridge_authorized',
+        ],
+    ]);
+
+    register_rest_route('webly/v1', '/customer/media', [
+        [
+            'methods' => 'GET',
+            'callback' => function (WP_REST_Request $request) {
+                $customer_id = webly_bridge_customer_id($request);
+                if (!webly_bridge_valid_customer($customer_id)) return new WP_Error('customer_not_found', 'Nie znaleziono klienta.', ['status' => 404]);
+                $media = get_user_meta($customer_id, 'webly_media', true);
+                return ['ok' => true, 'media' => is_array($media) ? array_values($media) : []];
+            },
+            'permission_callback' => 'webly_bridge_authorized',
+        ],
+        [
+            'methods' => 'POST',
+            'callback' => function (WP_REST_Request $request) {
+                $customer_id = webly_bridge_customer_id($request);
+                if (!webly_bridge_valid_customer($customer_id)) return new WP_Error('customer_not_found', 'Nie znaleziono klienta.', ['status' => 404]);
+                $mime = sanitize_mime_type($request->get_param('mimeType'));
+                $allowed = ['image/jpeg' => 'jpg', 'image/png' => 'png', 'image/webp' => 'webp', 'image/gif' => 'gif'];
+                if (!isset($allowed[$mime])) return new WP_Error('invalid_media', 'Dozwolone są pliki JPG, PNG, WEBP i GIF.', ['status' => 400]);
+                $raw = base64_decode((string) $request->get_param('data'), true);
+                if ($raw === false || strlen($raw) === 0 || strlen($raw) > 4 * MB_IN_BYTES) return new WP_Error('invalid_media', 'Plik jest pusty albo przekracza 4 MB.', ['status' => 400]);
+                $base_name = sanitize_file_name(pathinfo((string) $request->get_param('fileName'), PATHINFO_FILENAME));
+                $filename = ($base_name ?: 'webly-image') . '.' . $allowed[$mime];
+                $upload = wp_upload_bits($filename, null, $raw);
+                if (!empty($upload['error'])) return new WP_Error('upload_failed', $upload['error'], ['status' => 500]);
+                $attachment_id = wp_insert_attachment(['post_mime_type' => $mime, 'post_title' => $base_name ?: 'Webly image', 'post_status' => 'inherit'], $upload['file']);
+                if (!is_wp_error($attachment_id)) {
+                    require_once ABSPATH . 'wp-admin/includes/image.php';
+                    wp_update_attachment_metadata($attachment_id, wp_generate_attachment_metadata($attachment_id, $upload['file']));
+                }
+                $asset = ['id' => is_wp_error($attachment_id) ? 0 : (int) $attachment_id, 'url' => esc_url_raw($upload['url']), 'alt' => sanitize_text_field($base_name), 'name' => $filename];
+                $media = get_user_meta($customer_id, 'webly_media', true);
+                $media = is_array($media) ? $media : [];
+                array_unshift($media, $asset);
+                update_user_meta($customer_id, 'webly_media', array_slice($media, 0, 100));
+                return ['ok' => true, 'asset' => $asset];
+            },
+            'permission_callback' => 'webly_bridge_authorized',
+        ],
+    ]);
+
+    register_rest_route('webly/v1', '/customer/store', [
+        'methods' => 'GET',
+        'callback' => function (WP_REST_Request $request) {
+            $customer_id = webly_bridge_customer_id($request);
+            if (!webly_bridge_valid_customer($customer_id)) return new WP_Error('customer_not_found', 'Nie znaleziono klienta.', ['status' => 404]);
+            return ['ok' => true, 'store' => webly_bridge_store_data($customer_id)];
+        },
+        'permission_callback' => 'webly_bridge_authorized',
+    ]);
+
+    register_rest_route('webly/v1', '/customer/store/products', [
+        'methods' => 'POST',
+        'callback' => function (WP_REST_Request $request) {
+            $customer_id = webly_bridge_customer_id($request);
+            $product = $request->get_param('product');
+            if (!webly_bridge_valid_customer($customer_id) || !is_array($product)) return new WP_Error('invalid_product', 'Nieprawidłowy produkt.', ['status' => 400]);
+            $name = sanitize_text_field(isset($product['name']) ? $product['name'] : '');
+            $sku = sanitize_text_field(isset($product['sku']) ? $product['sku'] : '');
+            if (strlen($name) < 2 || !$sku) return new WP_Error('invalid_product', 'Podaj nazwę i SKU.', ['status' => 400]);
+            $store = webly_bridge_store_data($customer_id);
+            $store['products'][] = [
+                'id' => 'product_' . substr(str_replace('-', '', wp_generate_uuid4()), 0, 10),
+                'name' => $name,
+                'sku' => $sku,
+                'price' => max(0, floatval(isset($product['price']) ? $product['price'] : 0)),
+                'stock' => max(0, absint(isset($product['stock']) ? $product['stock'] : 0)),
+                'status' => isset($product['status']) && $product['status'] === 'DRAFT' ? 'DRAFT' : 'ACTIVE',
+                'imageUrl' => esc_url_raw(isset($product['imageUrl']) ? $product['imageUrl'] : ''),
+            ];
+            $store['updatedAt'] = current_time('c');
+            update_user_meta($customer_id, 'webly_store_data', $store);
+            return ['ok' => true, 'store' => $store];
+        },
+        'permission_callback' => 'webly_bridge_authorized',
+    ]);
+
+    register_rest_route('webly/v1', '/customer/store/integrations', [
+        'methods' => 'PUT',
+        'callback' => function (WP_REST_Request $request) {
+            $customer_id = webly_bridge_customer_id($request);
+            $selected = $request->get_param('selected');
+            if (!webly_bridge_valid_customer($customer_id) || !is_array($selected)) return new WP_Error('invalid_integrations', 'Nieprawidłowa lista integracji.', ['status' => 400]);
+            $selected = array_map('sanitize_key', $selected);
+            $store = webly_bridge_store_data($customer_id);
+            foreach ($store['integrations'] as &$integration) {
+                $integration['selected'] = in_array($integration['id'], $selected, true);
+            }
+            unset($integration);
+            $store['updatedAt'] = current_time('c');
+            update_user_meta($customer_id, 'webly_store_data', $store);
+            return ['ok' => true, 'store' => $store];
+        },
+        'permission_callback' => 'webly_bridge_authorized',
+    ]);
+
+    register_rest_route('webly/v1', '/admin/overview', [
+        'methods' => 'GET',
+        'callback' => function () {
+            $customers = [];
+            $site_count = 0;
+            $store_count = 0;
+            $revenue = 0;
+            $package_prices = [];
+            foreach (webly_bridge_packages() as $package) $package_prices[$package['id']] = floatval($package['price']);
+            foreach (get_users(['orderby' => 'registered', 'order' => 'DESC']) as $user) {
+                $payload = webly_bridge_customer_payload($user);
+                if ($payload['role'] === 'ADMIN') continue;
+                $sites = webly_bridge_customer_sites($user->ID);
+                $subscription = webly_bridge_subscription($user->ID);
+                $site_count += count($sites);
+                foreach ($sites as $site) if (isset($site['kind']) && $site['kind'] === 'STORE') $store_count++;
+                if (isset($package_prices[$subscription['plan']]) && !in_array($subscription['status'], ['CANCELED'], true)) $revenue += $package_prices[$subscription['plan']];
+                $customers[] = array_merge($payload, ['subscription' => $subscription, 'sites' => $sites]);
+            }
+            return ['ok' => true, 'overview' => ['customers' => $customers, 'packages' => webly_bridge_packages(), 'totals' => ['customers' => count($customers), 'sites' => $site_count, 'stores' => $store_count, 'monthlyRevenue' => $revenue]]];
+        },
+        'permission_callback' => 'webly_bridge_authorized',
+    ]);
+
+    register_rest_route('webly/v1', '/admin/customers/(?P<id>\d+)', [
+        'methods' => 'PUT',
+        'callback' => function (WP_REST_Request $request) {
+            $customer_id = absint($request['id']);
+            $user = get_user_by('id', $customer_id);
+            if (!$user) return new WP_Error('customer_not_found', 'Nie znaleziono klienta.', ['status' => 404]);
+            $subscription = webly_bridge_subscription($customer_id);
+            $plan = strtoupper(sanitize_key($request->get_param('plan')));
+            $status = strtoupper(sanitize_key($request->get_param('status')));
+            $access = strtoupper(sanitize_key($request->get_param('access')));
+            if (in_array($plan, ['START', 'PRO', 'COMMERCE', 'OMNICHANNEL'], true)) $subscription['plan'] = $plan;
+            if (in_array($status, ['TRIALING', 'ACTIVE', 'PAST_DUE', 'CANCELED'], true)) $subscription['status'] = $status;
+            if (in_array($access, ['ACTIVE', 'SUSPENDED'], true)) update_user_meta($customer_id, 'webly_access', $access);
+            update_user_meta($customer_id, 'webly_subscription', $subscription);
+            return ['ok' => true, 'customer' => array_merge(webly_bridge_customer_payload($user), ['subscription' => $subscription, 'sites' => webly_bridge_customer_sites($customer_id)])];
+        },
+        'permission_callback' => 'webly_bridge_authorized',
     ]);
 
     register_rest_route('webly/v1', '/site/public', [
