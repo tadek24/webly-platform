@@ -20,9 +20,11 @@ export function AuthForm({ mode, templateId }: { mode: "login" | "register"; tem
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),
       });
-      const result = await response.json() as { error?: string };
+      const result = await response.json() as { error?: string; customer?: { role?: "ADMIN" | "CUSTOMER" } };
       if (!response.ok) throw new Error(result.error ?? "Operacja nie powiodła się.");
-      window.location.href = mode === "register" && templateId
+      window.location.href = result.customer?.role === "ADMIN"
+        ? "/panel"
+        : mode === "register" && templateId
         ? `/konto/witryny/nowa?template=${encodeURIComponent(templateId)}`
         : "/konto";
     } catch (submitError) {
@@ -42,4 +44,3 @@ export function AuthForm({ mode, templateId }: { mode: "login" | "register"; tem
     </form>
   );
 }
-

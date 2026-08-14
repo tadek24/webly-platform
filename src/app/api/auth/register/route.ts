@@ -15,7 +15,8 @@ export async function POST(request: Request) {
   if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Sprawdź formularz." }, { status: 400 });
 
   try {
-    const { customer } = await bridgeRequest<{ customer: CustomerProfile }>("/customer/auth/register", { method: "POST", body: parsed.data });
+    const result = await bridgeRequest<{ customer: CustomerProfile }>("/customer/auth/register", { method: "POST", body: parsed.data });
+    const customer: CustomerProfile = { ...result.customer, role: "CUSTOMER" };
     const response = NextResponse.json({ ok: true, customer });
     response.cookies.set(CUSTOMER_SESSION_COOKIE, createCustomerSessionToken(customer), customerSessionCookieOptions);
     return response;

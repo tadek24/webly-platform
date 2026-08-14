@@ -1,6 +1,12 @@
 import { revalidatePath } from "next/cache";
 import { NextRequest, NextResponse } from "next/server";
 import { DEFAULT_MARKETING_CONTENT, type MarketingContentKey } from "@/lib/marketing-content";
+import { getCustomerSession } from "@/lib/customer-session";
+
+async function requireApiAdmin() {
+  const session = await getCustomerSession();
+  return session?.role === "ADMIN";
+}
 
 function config() {
   const baseUrl = process.env.WP_BASE_URL?.replace(/\/$/, "");
@@ -30,6 +36,7 @@ async function callWordPress(path: string, searchParams?: Record<string, string>
 }
 
 export async function GET(request: NextRequest) {
+  if (!await requireApiAdmin()) return NextResponse.json({ error: "Brak dostępu." }, { status: 403 });
   const key = request.nextUrl.searchParams.get("key");
   const status = request.nextUrl.searchParams.get("status") === "published" ? "published" : "draft";
   if (!validKey(key)) return NextResponse.json({ error: "Nieprawidłowy klucz treści." }, { status: 400 });
@@ -44,6 +51,7 @@ export async function GET(request: NextRequest) {
 }
 
 export async function PUT(request: NextRequest) {
+  if (!await requireApiAdmin()) return NextResponse.json({ error: "Brak dostępu." }, { status: 403 });
   const body = await request.json() as { key?: string; content?: unknown };
   if (!validKey(body.key) || !body.content) return NextResponse.json({ error: "Brakuje klucza lub treści." }, { status: 400 });
   try {
@@ -56,6 +64,7 @@ export async function PUT(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
+  if (!await requireApiAdmin()) return NextResponse.json({ error: "Brak dostępu." }, { status: 403 });
   const body = await request.json() as { key?: string };
   if (!validKey(body.key)) return NextResponse.json({ error: "Nieprawidłowy klucz treści." }, { status: 400 });
   try {

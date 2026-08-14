@@ -1,15 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import type { CustomerSubscription } from "@/lib/site-builder-types";
+import type { CustomerSubscription, PackageDefinition } from "@/lib/site-builder-types";
 
-const plans = [
-  { id: "START" as const, name: "Start", price: "79 zł", detail: "1 strona / własna domena" },
-  { id: "PRO" as const, name: "Pro", price: "149 zł", detail: "3 strony / więcej sekcji" },
-  { id: "COMMERCE" as const, name: "Commerce", price: "249 zł", detail: "sklep / WooCommerce" },
-];
-
-export function SubscriptionManager({ initial }: { initial: CustomerSubscription }) {
+export function SubscriptionManager({ initial, packages }: { initial: CustomerSubscription; packages: PackageDefinition[] }) {
   const [subscription, setSubscription] = useState(initial);
   const [status, setStatus] = useState("");
 
@@ -23,6 +17,5 @@ export function SubscriptionManager({ initial }: { initial: CustomerSubscription
     } else setStatus(result.error ?? "Nie udało się zmienić planu.");
   }
 
-  return <div><div className="subscription-grid">{plans.map((plan) => <article key={plan.id} className={subscription.plan === plan.id ? "current" : ""}><span>{subscription.plan === plan.id ? "TWÓJ PLAN" : "PLAN"}</span><h2>{plan.name}</h2><strong>{plan.price}<small>/ mies.</small></strong><p>{plan.detail}</p><button onClick={() => choose(plan.id)} disabled={subscription.plan === plan.id}>{subscription.plan === plan.id ? "AKTYWNY" : "WYBIERAM →"}</button></article>)}</div>{status && <p className="subscription-message">{status}</p>}</div>;
+  return <div><div className="subscription-grid">{packages.map((plan) => <article key={plan.id} className={subscription.plan === plan.id ? "current" : ""}><span>{subscription.plan === plan.id ? "TWÓJ PLAN" : "PLAN"}</span><h2>{plan.name}</h2><strong>{plan.price.toLocaleString("pl-PL")} zł<small>/ mies.</small></strong><p>{plan.description}</p><ul>{plan.features.slice(0, 4).map((feature) => <li key={feature}>{feature}</li>)}</ul><button onClick={() => choose(plan.id)} disabled={subscription.plan === plan.id}>{subscription.plan === plan.id ? "AKTYWNY" : "WYBIERAM →"}</button></article>)}</div>{status && <p className="subscription-message">{status}</p>}</div>;
 }
-

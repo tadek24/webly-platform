@@ -52,9 +52,11 @@ export const SITE_TEMPLATES: SiteTemplate[] = [
     theme: "red",
     blocks: [
       { id: "mercato-hero", type: "hero", kicker: "NOWA KOLEKCJA", title: "Przedmioty do codziennego używania.", body: "Dobre materiały, krótka seria i projekt, który zostaje na dłużej.", buttonLabel: "Kup kolekcję", buttonHref: "#produkty", align: "left" },
+      { id: "mercato-products", type: "products", kicker: "SKLEP / BESTSELLERY", title: "Najczęściej wybierane", items: ["Kubek Terra|89 zł", "Talerz Forma|119 zł", "Wazon Alto|149 zł"], align: "left" },
       { id: "mercato-features", type: "features", kicker: "DLACZEGO MY", title: "Mniej, ale lepiej", items: ["Produkcja w Polsce", "Naturalne materiały", "Wysyłka w 24 godziny"], align: "left" },
       { id: "mercato-text", type: "text", kicker: "EDYCJA 03", title: "Krótka seria. Długi czas życia.", body: "Każdy produkt powstaje w małej partii i przechodzi ręczną kontrolę jakości.", align: "center" },
       { id: "mercato-cta", type: "cta", title: "Zobacz całą kolekcję.", buttonLabel: "Przejdź do sklepu", buttonHref: "#produkty", align: "center" },
+      { id: "mercato-contact", type: "contact", kicker: "POMOC", title: "Zapytaj o produkt", body: "Odpowiadamy w dni robocze i pomagamy dobrać wariant.", buttonLabel: "Wyślij wiadomość", align: "left" },
     ],
   },
   {
@@ -107,4 +109,3 @@ export const SITE_TEMPLATES: SiteTemplate[] = [
 export function getSiteTemplate(id: string) {
   return SITE_TEMPLATES.find((template) => template.id === id);
 }
-

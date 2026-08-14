@@ -37,7 +37,13 @@ export function verifyCustomerSessionToken(token?: string | null): CustomerProfi
 
     const payload = JSON.parse(Buffer.from(encoded, "base64url").toString("utf8")) as SessionPayload;
     if (!payload.id || !payload.email || !payload.exp || payload.exp < Math.floor(Date.now() / 1000)) return null;
-    return { id: payload.id, email: payload.email, name: payload.name };
+    return {
+      id: payload.id,
+      email: payload.email,
+      name: payload.name,
+      role: payload.role === "ADMIN" ? "ADMIN" : "CUSTOMER",
+      access: payload.access === "SUSPENDED" ? "SUSPENDED" : "ACTIVE",
+    };
   } catch {
     return null;
   }
@@ -54,6 +60,13 @@ export async function requireCustomerSession() {
   return customer;
 }
 
+export async function requireAdminSession() {
+  const customer = await getCustomerSession();
+  if (!customer) redirect("/logowanie?next=/panel");
+  if (customer.role !== "ADMIN") redirect("/konto?brak-dostepu=panel");
+  return customer;
+}
+
 export const customerSessionCookieOptions = {
   httpOnly: true,
   secure: process.env.NODE_ENV === "production",
@@ -61,4 +74,3 @@ export const customerSessionCookieOptions = {
   path: "/",
   maxAge: SESSION_SECONDS,
 };
-

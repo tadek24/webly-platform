@@ -16,7 +16,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   const customer = await getCustomerSession();
   if (!customer) return NextResponse.json({ error: "Zaloguj się ponownie." }, { status: 401 });
-  const parsed = z.object({ plan: z.enum(["START", "PRO", "COMMERCE"]) }).safeParse(await request.json().catch(() => null));
+  const parsed = z.object({ plan: z.enum(["START", "PRO", "COMMERCE", "OMNICHANNEL"]) }).safeParse(await request.json().catch(() => null));
   if (!parsed.success) return NextResponse.json({ error: "Nieprawidłowy plan." }, { status: 400 });
   try {
     return NextResponse.json({ subscription: await updateSubscription(customer.id, parsed.data.plan) });
