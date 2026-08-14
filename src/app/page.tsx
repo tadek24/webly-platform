@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MarketingFrame } from "@/components/marketing-frame";
 import { Reveal } from "@/components/reveal";
 import { siteContent } from "@/content/marketing";
+import { getPublishedContent } from "@/lib/marketing-content";
 
 export const metadata: Metadata = {
   title: "Gotowe strony i sklepy internetowe w abonamencie",
@@ -21,7 +22,8 @@ const templates = [
   { name: "Mercato 03", kind: "Sklep", className: "template-mercato", note: "produkt na pierwszym planie" },
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  const hero = await getPublishedContent("home.hero");
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "Organization",
@@ -43,17 +45,17 @@ export default function HomePage() {
 
       <section className="hero section-grid">
         <div className="hero-copy">
-          <p className="section-index">01 / Nie zaczynaj od pustej kartki</p>
+          <p className="section-index">{hero.eyebrow}</p>
           <h1>
-            Strona, która
-            <span className="hero-shift"><i>od razu</i> wygląda</span>
-            jak Twoja.
+            {hero.title}
+            <span className="hero-shift"><i>{hero.accent}</i> {hero.tail}</span>
+            {hero.lastLine}
           </h1>
           <div className="hero-bottom">
-            <p>{siteContent.hero.lead}</p>
+            <p>{hero.lead}</p>
             <div className="button-row">
-              <Link className="button button-ink" href="/szablony">Zobacz projekty <span>↗</span></Link>
-              <Link className="text-link" href="/oferta">Jak to działa <span>→</span></Link>
+              <Link className="button button-ink" href={hero.primaryHref ?? "/szablony"}>{hero.primaryLabel ?? "Zobacz projekty"} <span>↗</span></Link>
+              <Link className="text-link" href={hero.secondaryHref ?? "/oferta"}>{hero.secondaryLabel ?? "Jak to działa"} <span>→</span></Link>
             </div>
           </div>
         </div>
@@ -156,4 +158,3 @@ export default function HomePage() {
     </MarketingFrame>
   );
 }
-
