@@ -3,6 +3,7 @@ import Link from "next/link";
 import { MarketingFrame } from "@/components/marketing-frame";
 import { PageIntro } from "@/components/page-intro";
 import { Reveal } from "@/components/reveal";
+import { getPublishedContent } from "@/lib/marketing-content";
 
 export const metadata: Metadata = {
   title: "Oferta — strony, landing page i sklepy internetowe",
@@ -16,10 +17,11 @@ const services = [
   { no: "C", title: "Sklep internetowy", text: "Gotowy projekt połączony z WooCommerce — z wygodną obsługą produktów i zamówień.", items: ["produkty i warianty", "płatności i dostawy", "kupony i zamówienia", "szkolenie z obsługi"] },
 ];
 
-export default function OfferPage() {
+export default async function OfferPage() {
+  const hero = await getPublishedContent("offer.hero");
   return (
     <MarketingFrame>
-      <PageIntro index="01" kicker="Oferta" title="Wybierz punkt startu." italic="Nie buduj zaplecza." lead="Każdy wariant obejmuje projekt, uruchomienie i późniejszą opiekę. Różni je skala — nie jakość wykonania." />
+      <PageIntro index={hero.eyebrow.split("/")[0].trim()} kicker={hero.eyebrow.split("/")[1]?.trim() ?? "Oferta"} title={hero.title} italic={hero.accent} lead={hero.lead} />
       <section className="service-ledger section-pad">
         {services.map((service, index) => <Reveal key={service.title} delay={index * 80}>
           <article className="service-entry">
@@ -45,4 +47,3 @@ export default function OfferPage() {
     </MarketingFrame>
   );
 }
-
