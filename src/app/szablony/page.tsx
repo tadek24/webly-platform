@@ -4,21 +4,13 @@ import { MarketingFrame } from "@/components/marketing-frame";
 import { PageIntro } from "@/components/page-intro";
 import { Reveal } from "@/components/reveal";
 import { getPublishedContent } from "@/lib/marketing-content";
+import { SITE_TEMPLATES } from "@/lib/site-templates";
 
 export const metadata: Metadata = {
   title: "Szablony stron i sklepów",
   description: "Zobacz gotowe projekty stron firmowych, landing page i sklepów internetowych. Każdy projekt można dopasować do marki.",
   alternates: { canonical: "/szablony" },
 };
-
-const library = [
-  { name: "Atelier 04", kind: "Beauty / usługi", tone: "sand", claim: "Spokój robi wrażenie." },
-  { name: "Forma 12", kind: "Architektura / wnętrza", tone: "blue", claim: "Mniej słów. Więcej przestrzeni." },
-  { name: "Mercato 03", kind: "Sklep / produkt", tone: "red", claim: "Produkt mówi pierwszy." },
-  { name: "Local 08", kind: "Gastro / lokalnie", tone: "green", claim: "Dobre miejsce blisko Ciebie." },
-  { name: "Expert 02", kind: "Doradztwo / B2B", tone: "cream", claim: "Wiedza podana konkretnie." },
-  { name: "Motion 07", kind: "Kampania / landing", tone: "violet", claim: "Jedna akcja. Mocny efekt." },
-];
 
 export default async function TemplatesPage() {
   const hero = await getPublishedContent("templates.hero");
@@ -27,8 +19,8 @@ export default async function TemplatesPage() {
       <PageIntro index={hero.eyebrow.split("/")[0].trim()} kicker={hero.eyebrow.split("/")[1]?.trim() ?? "Biblioteka"} title={hero.title} italic={hero.accent} lead={hero.lead} />
       <div className="filter-line"><span>WSZYSTKIE / 06</span><button>Firmowe</button><button>Sklepy</button><button>Landing page</button><i>Biblioteka rośnie co miesiąc.</i></div>
       <section className="library-grid section-pad">
-        {library.map((item, index) => <Reveal key={item.name} delay={(index % 2) * 80}>
-          <article className={`library-item tone-${item.tone}`}>
+        {SITE_TEMPLATES.map((item, index) => <Reveal key={item.name} delay={(index % 2) * 80}>
+          <article className={`library-item tone-${item.theme}`}>
             <div className="library-canvas">
               <div className="library-top"><span>{item.name}</span><i>●</i><span>MENU</span></div>
               <small>WEBLY / EDITION {String(index + 1).padStart(2,"0")}</small>
@@ -36,7 +28,7 @@ export default async function TemplatesPage() {
               <div className="library-lines"><span /><span /><span /></div>
               <b>↗</b>
             </div>
-            <footer><div><strong>{item.name}</strong><span>{item.kind}</span></div><Link href="/kontakt">Wybieram ten kierunek →</Link></footer>
+            <footer><div><strong>{item.name}</strong><span>{item.category}</span></div><Link href={`/rejestracja?template=${item.id}`}>Użyj tego szablonu →</Link></footer>
           </article>
         </Reveal>)}
       </section>
