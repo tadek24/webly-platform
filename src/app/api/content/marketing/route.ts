@@ -5,7 +5,10 @@ import { DEFAULT_MARKETING_CONTENT, type MarketingContentKey } from "@/lib/marke
 function config() {
   const baseUrl = process.env.WP_BASE_URL?.replace(/\/$/, "");
   const token = process.env.WP_API_TOKEN;
-  if (!baseUrl || !token) throw new Error("WORDPRESS_NOT_CONFIGURED");
+  if (!baseUrl || !token) {
+    const missing = [!baseUrl ? "WP_BASE_URL" : "", !token ? "WP_API_TOKEN" : ""].filter(Boolean).join(",");
+    throw new Error(`WORDPRESS_NOT_CONFIGURED:${missing}`);
+  }
   return { baseUrl, token };
 }
 
