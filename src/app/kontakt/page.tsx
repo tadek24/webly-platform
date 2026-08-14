@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { MarketingFrame } from "@/components/marketing-frame";
 import { PageIntro } from "@/components/page-intro";
+import { getPublishedContent } from "@/lib/marketing-content";
 
 export const metadata: Metadata = {
   title: "Kontakt — rozpocznij projekt",
@@ -8,10 +9,11 @@ export const metadata: Metadata = {
   alternates: { canonical: "/kontakt" },
 };
 
-export default function ContactPage() {
+export default async function ContactPage() {
+  const hero = await getPublishedContent("contact.hero");
   return (
     <MarketingFrame>
-      <PageIntro index="01" kicker="Kontakt" title="Najpierw krótka" italic="rozmowa o Twojej firmie." lead="Nie musisz znać technologii ani mieć gotowego briefu. Napisz, czym się zajmujesz i czego potrzebujesz." />
+      <PageIntro index={hero.eyebrow.split("/")[0].trim()} kicker={hero.eyebrow.split("/")[1]?.trim() ?? "Kontakt"} title={hero.title} italic={hero.accent} lead={hero.lead} />
       <section className="contact-layout section-pad">
         <form className="contact-form">
           <label><span>01 / Jak masz na imię?</span><input name="name" placeholder="Twoje imię" autoComplete="name" /></label>
@@ -26,4 +28,3 @@ export default function ContactPage() {
     </MarketingFrame>
   );
 }
-
