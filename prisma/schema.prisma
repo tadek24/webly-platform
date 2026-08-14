@@ -1,0 +1,50 @@
+generator client { provider = "prisma-client-js" }
+datasource db { provider = "postgresql"; url = env("DATABASE_URL") }
+
+enum SiteType { LANDING BUSINESS STORE }
+enum SiteStatus { PROVISIONING ACTIVE SUSPENDED FAILED }
+enum SubscriptionStatus { TRIALING ACTIVE PAST_DUE CANCELED }
+
+model Customer {
+  id String @id @default(cuid())
+  email String @unique
+  name String
+  createdAt DateTime @default(now())
+  sites Site[]
+  subscriptions Subscription[]
+}
+
+model Site {
+  id String @id @default(cuid())
+  name String
+  slug String @unique
+  type SiteType
+  status SiteStatus @default(PROVISIONING)
+  domain String?
+  wpBaseUrl String?
+  customerId String
+  customer Customer @relation(fields: [customerId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Plan {
+  id String @id @default(cuid())
+  name String
+  monthlyPrice Int
+  active Boolean @default(true)
+  subscriptions Subscription[]
+}
+
+model Subscription {
+  id String @id @default(cuid())
+  status SubscriptionStatus @default(TRIALING)
+  providerRef String? @unique
+  customerId String
+  planId String
+  customer Customer @relation(fields: [customerId], references: [id])
+  plan Plan @relation(fields: [planId], references: [id])
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
